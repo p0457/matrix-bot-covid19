@@ -19,6 +19,19 @@ export class CommandProcessor {
         let url = apiVersioned;
 
         try {
+            if (command === "help") {
+                let helpText = "<h4>COVID-19 Bot Help</h4><pre><code>";
+                helpText += "!covid19 help              - Shows this help menu\n";
+                helpText += "!covid19 total|totals      - Get global totals\n";
+                helpText += "!covid19 confirmed         - Get global confirmed case counts\n";
+                helpText += "!covid19 death|deaths      - Get global death counts\n";
+                helpText += "!covid19 recovered         - Get global recovered counts\n";
+                helpText += "!covid19 active            - Get global active case counts\n";
+                helpText += "!covid19 country [COUNTRY] - Get totals for country";
+                helpText += "!covid19 time [YYYY-MM-DD] - Get global totals for specific date";
+                helpText += "</code></pre>";
+                return this.sendHtmlReply(roomId, event, helpText);
+            }
             /*
                 Totals
                 http://covid2019-api.herokuapp.com/docs#/v2/get_total_v2_total_get
@@ -35,18 +48,18 @@ export class CommandProcessor {
                     let result = undefined;
                     if (response.data && response.data.data) {
                         const data = response.data.data;
-                        result = "<h4>COVID-19 Totals</h4>";
+                        result = "<h4>COVID-19 Global Totals</h4>";
                         if (data.confirmed) {
-                            result += `\n<b>Confirmed Cases:</b> ${this.formatNumber(data.confirmed)}`;
+                            result += `<b>Confirmed Cases:</b> ${this.formatNumber(data.confirmed)}<br/>`;
                         }
                         if (data.active) {
-                            result += `\n<b>Active Cases:</b> ${this.formatNumber(data.active)}`;
+                            result += `<b>Active Cases:</b> ${this.formatNumber(data.active)}<br/>`;
                         }
                         if (data.deaths) {
-                            result += `\n<b>Deaths:</b> ${this.formatNumber(data.deaths)}`;
+                            result += `<b>Deaths:</b> ${this.formatNumber(data.deaths)}<br/>`;
                         }
                         if (data.recovered) {
-                            result += `\n<b>Recovered:</b> ${this.formatNumber(data.recovered)}`;
+                            result += `<b>Recovered:</b> ${this.formatNumber(data.recovered)}<br/>`;
                         }
                     }
                     return result;
@@ -68,7 +81,7 @@ export class CommandProcessor {
                     let result = undefined;
                     if (response.data && response.data.data) {
                         const data = response.data.data;
-                        result = `<h4>COVID-19 Confirmed Cases</h4><b>\n${this.formatNumber(data)}</b>`;
+                        result = `<h4>COVID-19 Confirmed Cases</h4><b>${this.formatNumber(data)}</b><br/>`;
                     }
                     return result;
                 });
@@ -89,7 +102,7 @@ export class CommandProcessor {
                     let result = undefined;
                     if (response.data && response.data.data) {
                         const data = response.data.data;
-                        result = `<h4>COVID-19 Deaths</h4>\n<b>${this.formatNumber(data)}</b>`;
+                        result = `<h4>COVID-19 Deaths</h4><b>${this.formatNumber(data)}</b><br/>`;
                     }
                     return result;
                 });
@@ -110,7 +123,7 @@ export class CommandProcessor {
                     let result = undefined;
                     if (response.data && response.data.data) {
                         const data = response.data.data;
-                        result = `<h4>COVID-19 Recovered</h4>\n<b>${this.formatNumber(data)}</b>`;
+                        result = `<h4>COVID-19 Recovered</h4><b>${this.formatNumber(data)}</b><br/>`;
                     }
                     return result;
                 });
@@ -131,7 +144,7 @@ export class CommandProcessor {
                     let result = undefined;
                     if (response.data && response.data.data) {
                         const data = response.data.data;
-                        result = `<h4>COVID-19 Active Cases</h4>\n<b>${this.formatNumber(data)}</b>`;
+                        result = `<h4>COVID-19 Active Cases</h4><b>${this.formatNumber(data)}</b><br/>`;
                     }
                     return result;
                 });
@@ -155,18 +168,18 @@ export class CommandProcessor {
                         const data = response.data.data;
                         if (data.location) {
                             const location = data.location;
-                            result = `<h4>COVID-19 Data for ${location}</h4>`;
+                            result = `<h4>COVID-19 Data for <u>${location}</u></h4>`;
                             if (data.confirmed) {
-                                result += `\n<b>Confirmed Cases:</b> ${this.formatNumber(data.confirmed)}`;
+                                result += `<b>Confirmed Cases:</b> ${this.formatNumber(data.confirmed)}<br/>`;
                             }
                             if (data.active) {
-                                result += `\n<b>Active Cases:</b> ${this.formatNumber(data.active)}`;
+                                result += `<b>Active Cases:</b> ${this.formatNumber(data.active)}<br/>`;
                             }
                             if (data.deaths) {
-                                result += `\n<b>Deaths:</b> ${this.formatNumber(data.deaths)}`;
+                                result += `<b>Deaths:</b> ${this.formatNumber(data.deaths)}<br/>`;
                             }
                             if (data.recovered) {
-                                result += `\n<b>Recovered:</b> ${this.formatNumber(data.recovered)}`;
+                                result += `<b>Recovered:</b> ${this.formatNumber(data.recovered)}<br/>`;
                             }
                         }
                         else result = `No location found for <code>${country}</code>`;
@@ -202,15 +215,15 @@ export class CommandProcessor {
                         });
                         if (dataOnDate) {
                             const actualData = dataOnDate[dateKey];
-                            result = `<h4>COVID-19 Global Data for Date ${date}</h4>`;
+                            result = `<h4>COVID-19 Global Data for <u>${date}</u></h4>`;
                             if (actualData.confirmed) {
-                                result += `\n<b>Confirmed Cases:</b> ${this.formatNumber(actualData.confirmed)}`;
+                                result += `<b>Confirmed Cases:</b> ${this.formatNumber(actualData.confirmed)}<br/>`;
                             }
                             if (actualData.deaths) {
-                                result += `\n<b>Deaths:</b> ${this.formatNumber(actualData.deaths)}`;
+                                result += `<b>Deaths:</b> ${this.formatNumber(actualData.deaths)}<br/>`;
                             }
                             if (actualData.recovered) {
-                                result += `\n<b>Recovered:</b> ${this.formatNumber(actualData.recovered)}`;
+                                result += `<b>Recovered:</b> ${this.formatNumber(actualData.recovered)}<br/>`;
                             }
                         }
                         else result = `No data found for date <code>${date}</code>`;
