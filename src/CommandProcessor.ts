@@ -27,8 +27,8 @@ export class CommandProcessor {
                 helpText += "!covid19 death|deaths      - Get global death counts\n";
                 helpText += "!covid19 recovered         - Get global recovered counts\n";
                 helpText += "!covid19 active            - Get global active case counts\n";
-                helpText += "!covid19 country [COUNTRY] - Get totals for country";
-                helpText += "!covid19 time [YYYY-MM-DD] - Get global totals for specific date";
+                helpText += "!covid19 country [COUNTRY] - Get totals for country\n";
+                helpText += "!covid19 time [YYYY-MM-DD] - Get global totals for specific date\n";
                 helpText += "</code></pre>";
                 return this.sendHtmlReply(roomId, event, helpText);
             }
