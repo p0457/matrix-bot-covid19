@@ -1,6 +1,6 @@
 # matrix-bot-covid19
 
-A matrix bot that pulls data for COVID-19 from covid2019-api.herokuapp.com
+A matrix bot that pulls data for COVID-19 from [covid-api.com](https://covid-api.com)
 
 # Usage
 

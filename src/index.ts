@@ -22,7 +22,7 @@ async function finishInit() {
         if (event["content"]["msgtype"] !== "m.text") return;
 
         const message = event["content"]["body"].trim().toLowerCase();
-        if (!message.startsWith("!covid19 ")) return;
+        if (!message.startsWith("!covid19")) return; // Allow no commands
 
         // Check message is received from a date not too far behind
         // NOTE: When restarting application, bot will respond to most messages in the room, instead of just new ones

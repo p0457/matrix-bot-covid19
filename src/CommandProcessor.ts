@@ -12,32 +12,35 @@ export class CommandProcessor {
     public tryCommand(roomId: string, event: any): Promise<any> {
         const message = event['content']['body'].trim().toLowerCase();
         const command = message.substring("!covid19 ".length);
+        const commandLowerTrimmed = command.toLowerCase().trim();
 
-        const apiRoot = "http://covid2019-api.herokuapp.com";
-        const apiVersion = "v2";
-        const apiVersioned = `${apiRoot}/${apiVersion}`;
-        let url = apiVersioned;
+        let url = "https://covid-api.com/api";
 
         try {
             if (command === "help") {
                 let helpText = "<h4>COVID-19 Bot Help</h4><pre><code>";
-                helpText += "!covid19 help              - Shows this help menu\n";
-                helpText += "!covid19 total|totals      - Get global totals\n";
-                helpText += "!covid19 confirmed         - Get global confirmed case counts\n";
-                helpText += "!covid19 death|deaths      - Get global death counts\n";
-                helpText += "!covid19 recovered         - Get global recovered counts\n";
-                helpText += "!covid19 active            - Get global active case counts\n";
-                helpText += "!covid19 country [COUNTRY] - Get totals for country\n";
-                helpText += "!covid19 time [YYYY-MM-DD] - Get global totals for specific date\n";
+                helpText += "!covid19 help                                                        - Shows this help menu\n";
+                helpText += "!covid19 source|sources                                              - Show the data source\n";
+                helpText += "!covid19 regions                                                     - Get region ISO codes and names\n";
+                helpText += "!covid19 provinces [ISO]                                             - Get provinces for region ISO\n";
+                helpText += "!covid19 [YYYY-MM-DD|today|yesterday]* [ISO]:[Province]:[City Name]* - Get report for date (optional, default today), and location (optional, default global)\n";
                 helpText += "</code></pre>";
                 return this.sendHtmlReply(roomId, event, helpText);
             }
-            /*
-                Totals
-                http://covid2019-api.herokuapp.com/docs#/v2/get_total_v2_total_get
-            */
-            if (command === "total" || command === "totals") {
-                url = `${url}/total`;
+
+            // Source
+            if (command === "source" || command === "sources") {
+                let message = `Data provided by the COVID-19 Statistics API developed by axisbits in parternship with TAGSoft\n`;
+                message += `_This bot is in no way affiliated with the creator of this API, but all thanks and support should go to the API creators below_\n`;
+                message += `**API Home Link:** https://covid-api.com/\n`;
+                message += `**API Documentation:** https://covid-api.com/api\n`;
+                message += `**API GitHub:** https://github.com/axisbits/covid-api`;
+                return this.sendHtmlReply(roomId, event, message);
+            }
+
+            // Regions
+            else if (commandLowerTrimmed === "regions") {
+                url = `${url}/regions`;
                 return this.getData(roomId, event, {  
                     method: 'get',
                     headers: {
@@ -46,31 +49,22 @@ export class CommandProcessor {
                     url
                 }, (response) => {
                     let result = undefined;
-                    if (response.data && response.data.data) {
+                    if (response.data && response.data.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
                         const data = response.data.data;
-                        result = "<h4>COVID-19 Global Totals</h4>";
-                        if (data.confirmed) {
-                            result += `<b>Confirmed Cases:</b> ${this.formatNumber(data.confirmed)}<br/>`;
-                        }
-                        if (data.active) {
-                            result += `<b>Active Cases:</b> ${this.formatNumber(data.active)}<br/>`;
-                        }
-                        if (data.deaths) {
-                            result += `<b>Deaths:</b> ${this.formatNumber(data.deaths)}<br/>`;
-                        }
-                        if (data.recovered) {
-                            result += `<b>Recovered:</b> ${this.formatNumber(data.recovered)}<br/>`;
-                        }
+                        result = `<h4>COVID-19 Region ISO Codes and Names</h4><pre><code>`;
+                        response.data.data.forEach((r) => {
+                            if (r.iso && r.name) result += `${r.iso} - ${r.name}\n`;
+                        });
+                        result += "</code></pre>";
                     }
                     return result;
                 });
             }
-            /*
-                Confirmed
-                http://covid2019-api.herokuapp.com/docs#/v2/get_confirmed_v2_confirmed_get
-            */
-            if (command === "confirmed") {
-                url = `${url}/confirmed`;
+
+            // Provinces by ISO
+            else if (commandLowerTrimmed.startsWith("provinces ")) {
+                const iso = commandLowerTrimmed.substring("provinces ".length);
+                url = `${url}/provinces/${iso}`;
                 return this.getData(roomId, event, {  
                     method: 'get',
                     headers: {
@@ -79,127 +73,124 @@ export class CommandProcessor {
                     url
                 }, (response) => {
                     let result = undefined;
-                    if (response.data && response.data.data) {
+                    if (response.data && response.data.data && Array.isArray(response.data.data) && response.data.data.length > 0) {
                         const data = response.data.data;
-                        result = `<h4>COVID-19 Confirmed Cases</h4><b>${this.formatNumber(data)}</b><br/>`;
+                        
+                        // Get max length of province names
+                        const maxProvinceLength = Math.max.apply(Math, data.map(function(p) { return p.province.trim().length + 1; }));
+                        const minimumProvinceLength = "Province Name ".length;
+                        const provinceDisplayColumnLength = Math.max(maxProvinceLength, minimumProvinceLength);
+                        // Get max length of latitude
+                        const maxLatLength = Math.max.apply(Math, data.map(function(p) { return p.lat ? p.lat.length + 1 : 1; }));
+                        const minimumLatLength = "Latitude ".length;
+                        const latDisplayColumnLength = Math.max(maxLatLength, minimumLatLength);
+                        // Get max length of longitude
+                        const maxLongLength = Math.max.apply(Math, data.map(function(p) { return p.long ? p.long.length + 1 : 1; }));
+                        const minimumLongLength = "Longitude ".length;
+                        const longDisplayColumnLength = Math.max(maxLongLength, minimumLongLength);
+
+                        result = `<h4>COVID-19 Provinces for ISO ${iso.toUpperCase()}</h4><pre><code>`;
+
+                        let spaces = 0;
+                        
+                        result += "Province Name "; // A space as room for '-' in lines
+                        spaces = provinceDisplayColumnLength - "Province Name ".length;
+                        if (spaces > 0) result += new Array(spaces + 1).join(" ");
+                        
+                        result += "Latitude ";
+                        spaces = latDisplayColumnLength - "Latitude ".length;
+                        if (spaces > 0) result += new Array(spaces + 1).join(" ");
+                        
+                        result += "Longitude ";
+                        spaces = longDisplayColumnLength - "Longitude ".length;
+                        if (spaces > 0) result += new Array(spaces + 1).join(" ");
+
+                        result += "\n";
+
+                        data.forEach((d) => {
+                            result += `${d.province.trim()}`;
+                            spaces = provinceDisplayColumnLength - d.province.trim().length;
+                            if (spaces > 0) result += new Array(spaces + 1).join(" ");
+
+                            let lat = d.lat;
+                            if (!lat) lat = "N/A";
+                            result += lat;
+                            spaces = latDisplayColumnLength - lat.length;
+                            if (spaces > 0) result += new Array(spaces + 1).join(" ");
+                            
+                            let long = d.long;
+                            if (!long) long = "N/A";
+                            result += long;
+                            spaces = longDisplayColumnLength - long.length;
+                            if (spaces > 0) result += new Array(spaces + 1).join(" ");
+
+                            result += "\n";
+                        });
+                        result += "</code></pre>";
                     }
                     return result;
                 });
             }
-            /*
-                Deaths
-                http://covid2019-api.herokuapp.com/docs#/v2/get_deaths_v2_deaths_get
-            */
-            if (command === "death" || command === "deaths" || command === "dead" || command === "died" || command === "deceased") {
-                url = `${url}/deaths`;
-                return this.getData(roomId, event, {  
-                    method: 'get',
-                    headers: {
-                        "Accept": "application/json"
-                    }, 
-                    url
-                }, (response) => {
-                    let result = undefined;
-                    if (response.data && response.data.data) {
-                        const data = response.data.data;
-                        result = `<h4>COVID-19 Deaths</h4><b>${this.formatNumber(data)}</b><br/>`;
-                    }
-                    return result;
-                });
-            }
-            /*
-                Recovered
-                http://covid2019-api.herokuapp.com/docs#/v2/get_recovered_v2_recovered_get
-            */
-            if (command === "recovered" || command === "recovery" || command === "recover") {
-                url = `${url}/recovered`;
-                return this.getData(roomId, event, {  
-                    method: 'get',
-                    headers: {
-                        "Accept": "application/json"
-                    }, 
-                    url
-                }, (response) => {
-                    let result = undefined;
-                    if (response.data && response.data.data) {
-                        const data = response.data.data;
-                        result = `<h4>COVID-19 Recovered</h4><b>${this.formatNumber(data)}</b><br/>`;
-                    }
-                    return result;
-                });
-            }
-            /*
-                Active
-                http://covid2019-api.herokuapp.com/docs#/v2/get_active_v2_active_get
-            */
-            if (command === "active") {
-                url = `${url}/active`;
-                return this.getData(roomId, event, {  
-                    method: 'get',
-                    headers: {
-                        "Accept": "application/json"
-                    }, 
-                    url
-                }, (response) => {
-                    let result = undefined;
-                    if (response.data && response.data.data) {
-                        const data = response.data.data;
-                        result = `<h4>COVID-19 Active Cases</h4><b>${this.formatNumber(data)}</b><br/>`;
-                    }
-                    return result;
-                });
-            }
-            /*
-                Country
-                http://covid2019-api.herokuapp.com/docs#/v2/get_country_v2_country__country_name__get
-            */
-            if (command.startsWith("country ")) {
-                const country = command.substring("country ".length);
-                url = `${url}/country/${country}`;
-                return this.getData(roomId, event, {  
-                    method: 'get',
-                    headers: {
-                        "Accept": "application/json"
-                    }, 
-                    url
-                }, (response) => {
-                    let result = undefined;
-                    if (response.data && response.data.data) {
-                        const data = response.data.data;
-                        if (data.location) {
-                            const location = data.location;
-                            result = `<h4>COVID-19 Data for <u>${location}</u></h4>`;
-                            if (data.confirmed) {
-                                result += `<b>Confirmed Cases:</b> ${this.formatNumber(data.confirmed)}<br/>`;
-                            }
-                            if (data.active) {
-                                result += `<b>Active Cases:</b> ${this.formatNumber(data.active)}<br/>`;
-                            }
-                            if (data.deaths) {
-                                result += `<b>Deaths:</b> ${this.formatNumber(data.deaths)}<br/>`;
-                            }
-                            if (data.recovered) {
-                                result += `<b>Recovered:</b> ${this.formatNumber(data.recovered)}<br/>`;
-                            }
-                        }
-                        else result = `No location found for <code>${country}</code>`;
-                    }
-                    return result;
-                });
-            }
-            /*
-                Time (Global only)
-                http://covid2019-api.herokuapp.com/docs#/v2/get_time_series_v2_timeseries__case__get
-            */
-            if (command.startsWith("time ")) {
-                const date = command.substring("time ".length);
-                url = `${url}/timeseries/global`;
+
+            // Reports
+            else {
+                let query = commandLowerTrimmed;
+                let locationQuery = query;
+                let potentialDate = "today";
+                let hasQuery = false;
+                if (query.indexOf(" ") !== -1) { // Has a query
+                    hasQuery = true;
+                    potentialDate = query.substring(0, query.indexOf(" ")).toLowerCase();
+                } else if (query) potentialDate = query;
 
                 // Check date
-                const momentDate = moment(date, "YYYY-MM-DD");
-                if (!momentDate.isValid()) return this.sendHtmlReply(roomId, event, `Date was invalid: <code>${date}</code>`);
-                const dateKey = momentDate.format("M/D/YY");
+                let validDate = false;
+                let momentDate = new moment();
+                momentDate = momentDate.subtract(1, "days"); // Technically need yesterday's data
+                if (potentialDate === "yesterday") {
+                    validDate = true;
+                    locationQuery = query.substring("yesterday ".length);
+                } else if (potentialDate === "today") {
+                    validDate = true;
+                    locationQuery = query.substring("today ".length);
+                } else {
+                    momentDate = moment(potentialDate, "YYYY-MM-DD");
+                    if (momentDate.isValid()) {
+                        validDate = true;
+                        locationQuery = query.substring("YYYY-MM-DD ".length);
+                    }
+                }
+                if (!validDate) return this.sendHtmlReply(roomId, event, `Date was invalid: <code>${potentialDate}</code>`);
 
+                const dateToUse = momentDate.format("YYYY-MM-DD");
+
+                let showCities = false;
+
+                let location;
+
+                if (hasQuery) {
+                    if (!locationQuery) return this.sendHtmlReply(roomId, event, `Query was invalid`);
+                    const locationQueryParts = locationQuery.split(":");
+                    if (!locationQueryParts || locationQueryParts.length === 0) return this.sendHtmlReply(roomId, event, `Query was invalid`);
+                    const iso = locationQueryParts[0];
+                    location = iso ? iso.toUpperCase() : "Earth";
+                    let province;
+                    if (locationQueryParts.length > 1) province = locationQueryParts[1].trim();
+                    let cityName;
+                    if (locationQueryParts.length > 2) cityName = locationQueryParts[2].trim();
+                    showCities = cityName !== undefined && cityName.length > 0;
+
+                    url = `${url}/reports?${this.stringifyQueryParams({
+                        date: dateToUse,
+                        iso,
+                        region_province: province,
+                        city_name: cityName
+                    })}`;
+                } else {
+                    url = `${url}/reports/total?${this.stringifyQueryParams({ date: dateToUse })}`;
+                    location = "Earth";
+                }
+                
                 return this.getData(roomId, event, {  
                     method: 'get',
                     headers: {
@@ -208,25 +199,89 @@ export class CommandProcessor {
                     url
                 }, (response) => {
                     let result = undefined;
-                    if (response.data && response.data.data && Array.isArray(response.data.data)) {
-                        const data = response.data.data;
-                        const dataOnDate = data.find((d) => {
-                            return Object.keys(d)[0] === dateKey;
-                        });
-                        if (dataOnDate) {
-                            const actualData = dataOnDate[dateKey];
-                            result = `<h4>COVID-19 Global Data for <u>${date}</u></h4>`;
-                            if (actualData.confirmed) {
-                                result += `<b>Confirmed Cases:</b> ${this.formatNumber(actualData.confirmed)}<br/>`;
-                            }
-                            if (actualData.deaths) {
-                                result += `<b>Deaths:</b> ${this.formatNumber(actualData.deaths)}<br/>`;
-                            }
-                            if (actualData.recovered) {
-                                result += `<b>Recovered:</b> ${this.formatNumber(actualData.recovered)}<br/>`;
-                            }
+                    if (response.data && response.data.data) {
+                        let data = response.data.data;
+
+                        if (!Array.isArray(response.data.data) && Object.keys(response.data.data).length > 0) {
+                            data = [data];
                         }
-                        else result = `No data found for date <code>${date}</code>`;
+
+                        // Only proceed if there is data
+                        if (!data[0] || !data[0].last_update) {
+                            return result = "0";
+                        }
+
+                        result = `<h4>COVID-19 Report for ${dateToUse}</h4><pre><code>${location}\n`;
+
+                        // Should repeat one for each province
+                        data.forEach((d) => {
+                            const date = d.date;
+                            const updated = d.last_update;
+                            if (updated) { // Only proceed if there is data
+                                const totalConfirmed = d.confirmed;
+                                const totalDeaths = d.deaths;
+                                const totalRecovered = d.recovered;
+                                const totalActive = d.active;
+                                const diffConfirmed = d.confirmed_diff;
+                                const diffDeaths = d.deaths_diff;
+                                const diffRecovered = d.recovered_diff;
+                                const diffActive = d.active_diff;
+                                const fatalityRate = d.fatality_rate;
+                                const fatalityRatePercentage = (fatalityRate * 100).toFixed(2);
+                                const region = d.region;
+
+                                let indent = "  - ";
+                                let cities;
+                                let provinceLat;
+                                let provinceLong;
+
+                                if (region) {
+                                    const iso = region.iso;
+                                    const isoName = region.name;
+                                    const province = region.province;
+                                    provinceLat = region.lat;
+                                    provinceLong = region.long;
+                                    cities = region.cities;
+                                    
+                                    result += `${indent}${province} (${provinceLat},${provinceLong}) updated ${updated} (${this.timeSince(updated)})\n`;
+                                    indent = indent.replace("-", " ");
+                                    indent += "  - ";
+                                }
+
+                                if (provinceLat && provinceLong) result += `${indent}Google Maps: ${this.mapsUrl(provinceLat, provinceLong, "province")}\n`;
+                                result += `${indent}Confirmed: ${this.formatNumber(totalConfirmed)} (diff ${this.formatNumber(diffConfirmed)})\n`;
+                                result += `${indent}Deaths: ${this.formatNumber(totalDeaths)} (diff ${this.formatNumber(diffDeaths)})\n`;
+                                result += `${indent}Recovered: ${this.formatNumber(totalRecovered)} (diff ${this.formatNumber(diffRecovered)})\n`;
+                                result += `${indent}Active: ${this.formatNumber(totalActive)} (diff ${this.formatNumber(diffActive)})\n`;
+                                result += `${indent}Fatality Rate: ${fatalityRatePercentage}%\n`;
+
+                                // Don't process cities unless specified
+                                if (showCities && cities && Array.isArray(cities) && cities.length > 0) {
+                                    result += `${indent}City Data:\n`
+                                    indent = indent.replace("-", " ");
+                                    let cityIndent = indent + "  - ";
+                                    cities.forEach((c) => {
+                                        const cityName = c.name;
+                                        const cityUpdated = c.last_update;
+                                        if (cityUpdated) { // Only proceed if there is data
+                                            const cityFips = c.fips;
+                                            const cityLat = c.lat;
+                                            const cityLong = c.long;
+                                            const cityConfirmed = c.confirmed;
+                                            const cityDeaths = c.deaths;
+                                            const cityDiffConfirmed = c.confirmed_diff;
+                                            const cityDiffDeaths = c.deaths_diff;
+                                            result += `${cityIndent}${cityName} (${cityLat},${cityLong}) [FIPS: ${cityFips}] updated ${cityUpdated} (${this.timeSince(cityUpdated)})\n`;
+                                            cityIndent = cityIndent.replace("-", " ");
+                                            cityIndent += "  - ";
+                                            result += `${cityIndent}Google Maps: ${this.mapsUrl(cityLat, cityLong, "city")}\n`;
+                                            result += `${cityIndent}Confirmed: ${this.formatNumber(cityConfirmed)} (diff ${this.formatNumber(cityDiffConfirmed)})\n`;
+                                            result += `${cityIndent}Deaths: ${this.formatNumber(cityDeaths)} (diff ${this.formatNumber(cityDiffDeaths)})\n`;
+                                        }
+                                    });
+                                }
+                            }
+                        });
                     }
                     return result;
                 });
@@ -242,11 +297,14 @@ export class CommandProcessor {
             axios(axiosOptions)
             .then((response) => {
                 const messageContent = processResponse(response);
-                if (messageContent) {
-                    this.sendHtmlReply(roomId, event, messageContent);
+                if (messageContent === "0") {
+                    this.sendHtmlReply(roomId, event, `No data found`);
+                    resolve();
+                } else if (!messageContent) {
+                    this.sendHtmlReply(roomId, event, `Error processing data`);
                     resolve();
                 } else {
-                    this.sendHtmlReply(roomId, event, `Error processing data`);
+                    this.sendHtmlReply(roomId, event, messageContent);
                     resolve();
                 }
             }, (error) => {
@@ -256,6 +314,61 @@ export class CommandProcessor {
             });
             resolve();
         });
+    }
+
+    private mapsUrl(lat: string, long: string, type: string): string {
+        let zoomLevel = "7z";
+        if (type === "iso") zoomLevel = "6z";
+        else if (type === "province") zoomLevel = "7z";
+        else if (type === "city") zoomLevel = "12z";
+
+        const covidDataFilter = "!5m1!1e7";
+
+        return `https://www.google.com/maps/@${lat},${long},${zoomLevel}/data=${covidDataFilter}`;
+    }
+
+    private timeSince(date: Date|string): string {
+        let dateTemp = new Date();
+        if (typeof date === 'string') {
+          dateTemp = new Date(date);
+        }
+        const newDate = new Date();
+        const diff = +newDate - +dateTemp;
+        const seconds = Math.floor((diff) / 1000);
+        let interval = Math.floor(seconds / 31536000);
+      
+        if (Math.abs(interval) > 1) {
+          return Math.abs(interval) + ' years ' + (interval < 0 ? 'from now' : 'ago');
+        }
+        interval = Math.floor(seconds / 2592000);
+        if (Math.abs(interval) > 1) {
+          return Math.abs(interval) + ' months ' + (interval < 0 ? 'from now' : 'ago');
+        }
+        interval = Math.floor(seconds / 86400);
+        if (Math.abs(interval) > 1) {
+          return Math.abs(interval) + ' days ' + (interval < 0 ? 'from now' : 'ago');
+        }
+        interval = Math.floor(seconds / 3600);
+        if (Math.abs(interval) > 1) {
+          return Math.abs(interval) + ' hours ' + (interval < 0 ? 'from now' : 'ago');
+        }
+        interval = Math.floor(seconds / 60);
+        if (Math.abs(interval) > 1) {
+          return Math.abs(interval) + ' minutes ' + (interval < 0 ? 'from now' : 'ago');
+        }
+        return Math.floor(seconds) + ' seconds ' + (interval < 0 ? 'from now' : 'ago');
+    }
+
+    private stringifyQueryParams(params: object): string {
+        let result = "";
+        for (let key in params) {
+            const val = params[key];
+            if (val) {
+                if (result !== "") result += "&";
+                result += `${key}=${encodeURIComponent(val)}`;
+            }
+        }
+        return result;
     }
 
     private formatNumber(num: number): string {
