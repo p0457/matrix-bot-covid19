@@ -4,6 +4,9 @@ accessToken: "YOUR_TOKEN_HERE"
 # How long back messages can be to be responded to
 msBetweenResponses: 200
 
+# Delimit the fields for query
+queryFieldDelimiter: "@"
+
 # Time offset (hours)
 tzOffsetHours: 0
 

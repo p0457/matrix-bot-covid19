@@ -13,6 +13,8 @@ interface IConfig {
 
     msBetweenResponses: number;
 
+    queryFieldDelimiter: string;
+
     tzOffsetHours: number;
 
     logging: LogConfig;
