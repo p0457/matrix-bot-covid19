@@ -309,7 +309,7 @@ export class CommandProcessor {
                     resolve();
                 }
             }, (error) => {
-                LogService.error("CommandProcessor", error);
+                LogService.error("CommandProcessor", { axiosOptions, error });
                 this.sendHtmlReply(roomId, event, "There was an error processing your command");
                 reject(error);
             });
