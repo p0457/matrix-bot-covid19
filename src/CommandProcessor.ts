@@ -30,11 +30,11 @@ export class CommandProcessor {
 
             // Source
             if (command === "source" || command === "sources") {
-                let message = `Data provided by the COVID-19 Statistics API developed by axisbits in parternship with TAGSoft\n`;
-                message += `_This bot is in no way affiliated with the creator of this API, but all thanks and support should go to the API creators below_\n`;
-                message += `**API Home Link:** https://covid-api.com/\n`;
-                message += `**API Documentation:** https://covid-api.com/api\n`;
-                message += `**API GitHub:** https://github.com/axisbits/covid-api`;
+                let message = `<b>Data provided by the COVID-19 Statistics API developed by axisbits in parternship with TAGSoft</b><br/>`;
+                message += `<i>This bot is in no way affiliated with the creator of this API, but all thanks and support should go to the API creators below</i><br/></br>`;
+                message += `<small><b>API Home Link:</b> https://covid-api.com/</small><br/>`;
+                message += `<small><b>API Documentation:</b> https://covid-api.com/api</small><br/>`;
+                message += `<small><b>API GitHub:</b> https://github.com/axisbits/covid-api</small>`;
                 return this.sendHtmlReply(roomId, event, message);
             }
 
