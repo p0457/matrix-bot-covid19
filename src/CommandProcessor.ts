@@ -23,7 +23,7 @@ export class CommandProcessor {
                 helpText += "!covid19 source|sources                                              - Show the data source\n";
                 helpText += "!covid19 regions                                                     - Get region ISO codes and names\n";
                 helpText += "!covid19 provinces [ISO]                                             - Get provinces for region ISO\n";
-                helpText += "!covid19 [YYYY-MM-DD|today|yesterday]* [ISO]:[Province]:[City Name]* - Get report for date (optional, default today), and location (optional, default global)\n";
+                helpText += "!covid19 [YYYY-MM-DD|today|yesterday]* [ISO]@[Province]@[City Name]* - Get report for date (optional, default today), and location (optional, default global)\n";
                 helpText += "</code></pre>";
                 return this.sendHtmlReply(roomId, event, helpText);
             }
@@ -170,7 +170,7 @@ export class CommandProcessor {
 
                 if (hasQuery) {
                     if (!locationQuery) return this.sendHtmlReply(roomId, event, `Query was invalid`);
-                    const locationQueryParts = locationQuery.split(":");
+                    const locationQueryParts = locationQuery.split("@");
                     if (!locationQueryParts || locationQueryParts.length === 0) return this.sendHtmlReply(roomId, event, `Query was invalid`);
                     const iso = locationQueryParts[0];
                     location = iso ? iso.toUpperCase() : "Earth";
