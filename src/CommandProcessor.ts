@@ -208,6 +208,7 @@ export class CommandProcessor {
 
                         // Only proceed if there is data
                         if (!data[0] || !data[0].last_update) {
+                            LogService.warn("CommandProcessor.tryCommand(post-rest-call)", `Data was undefined for url: '${url}' and original message: '${message}'`);
                             return result = "0";
                         }
 
