@@ -13,6 +13,8 @@ interface IConfig {
 
     msBetweenResponses: number;
 
+    tzOffsetHours: number;
+
     logging: LogConfig;
 }
 

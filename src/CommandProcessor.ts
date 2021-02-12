@@ -146,7 +146,7 @@ export class CommandProcessor {
                 // Check date
                 let validDate = false;
                 let momentDate = new moment();
-                momentDate = momentDate.subtract(1, "days"); // Technically need yesterday's data
+                momentDate = momentDate.subtract(1, "days").add(config.tzOffsetHours, "hours"); // Technically need yesterday's data
                 if (potentialDate === "yesterday") {
                     validDate = true;
                     locationQuery = query.substring("yesterday ".length);

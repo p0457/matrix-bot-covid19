@@ -4,6 +4,9 @@ accessToken: "YOUR_TOKEN_HERE"
 # How long back messages can be to be responded to
 msBetweenResponses: 200
 
+# Time offset (hours)
+tzOffsetHours: 0
+
 # Settings for controlling how logging works
 # The Docker image will only consider the consoleLevel, and not write to any files.
 logging:
